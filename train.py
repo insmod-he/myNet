@@ -7,7 +7,7 @@ if __name__=="__main__":
     my_net = make_2layer_mlp()
     my_net.set_lr(1)
     my_net.set_weight_decay(1e-3)
-    my_net.set_momemtum(0.2)
+    my_net.set_momemtum(0.5)
     show_interval = 1000
     
     itr = 0
