@@ -53,7 +53,7 @@ class MnistDataLayer():
             # lets visualize the data:
             plt.scatter(X[:, 0], X[:, 1], c=y, s=40, cmap=plt.cm.Spectral)
             plt.show()
-            pdb.set_trace()
+            #pdb.set_trace()
         
         self.data_X_ = X
         self.data_y_ = y
@@ -63,7 +63,7 @@ class MnistDataLayer():
 
     def forward(self, bottom, top):
         assert 2==len(top)
-        pdb.set_trace()
+        #pdb.set_trace()
 
         batch_X = []
         batch_y = []
@@ -79,6 +79,9 @@ class MnistDataLayer():
         top[1].data_ = np.array(batch_y)
 
     def backward(self, bottom, top):
+        pass
+    
+    def updata_param(self, lr):
         pass
 
 class FCLayer():
@@ -96,7 +99,7 @@ class FCLayer():
     # bottom[0] -> input data(batch, dim)
     # top[0] -> output data(batch, output)
     def forward(self, bottom, top):
-        pdb.set_trace()
+        #pdb.set_trace()
         assert 1==len(bottom)
         assert 1==len(top)
 
@@ -112,7 +115,7 @@ class FCLayer():
         self.activ_  = activ
 
     def backward(self, bottom, top):
-        pdb.set_trace()
+        #pdb.set_trace()
         assert 1==len(bottom)
         assert 1==len(top)
 
@@ -171,7 +174,7 @@ class SoftmaxLossLayer():
     # bottom[0].data_ -> unnormalized prob
     # bottom[1].data_ -> label
     def forward(self, bottom, top):
-        pdb.set_trace()
+        #pdb.set_trace()
         assert 1==len(top)
         assert 2==len(bottom)
         data  = bottom[0].data_
@@ -190,8 +193,9 @@ class SoftmaxLossLayer():
 
     def backward(self, bottom, top):
         assert 2==len(bottom)
-        pdb.set_trace()
-        batch, dim = bottom[0].data_  # unnormalized score
+        #pdb.set_trace()
+        batch, dim = bottom[0].data_.shape  # unnormalized score
+        
         label = bottom[1].data_
         grad  = copy.deepcopy(self.prob_)
         grad[range(batch), label] -= 1.0

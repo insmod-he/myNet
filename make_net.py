@@ -5,7 +5,7 @@ def make_softmax_net():
     params = []
     
     layer1 = {}
-    layer1["batch"]  = 32
+    layer1["batch"]  = 128
     layer1["name"]   = "Data"
     layer1["type"]   = "MnistDataLayer"
     layer1["bottom"] = []
