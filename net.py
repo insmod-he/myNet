@@ -33,9 +33,16 @@ class Net():
                 top_check_dict[name] = ""
         
         self.lr_ = 1e-3
+        self.decay_coef_ = 0
     
     def set_lr(self, lr):
         self.lr_ = lr
+    
+    def set_weight_decay(self, coef):
+        self.decay_coef_ = coef
+    
+    def get_weight_decay(self):
+        return self.decay_coef_
     
     def create_empty_blobs(self, num):
         blobs = []
@@ -99,5 +106,5 @@ class Net():
     
     def update_all_params(self):
         for L in self.layers_:
-            L.updata_param(self.lr_)
+            L.updata_param(self.lr_, self.decay_coef_)
 

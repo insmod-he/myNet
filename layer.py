@@ -81,8 +81,11 @@ class MnistDataLayer():
     def backward(self, bottom, top):
         pass
     
-    def updata_param(self, lr):
+    def updata_param(self, lr, decay_coef):
         pass
+
+    def calc_weight_decay(self):
+        return 0
 
 class FCLayer():
     def init(self, params):
@@ -130,9 +133,16 @@ class FCLayer():
         self.dW_ = copy.deepcopy(dW)
         self.db_ = copy.deepcopy(db)
 
-    def updata_param(self, lr):
+    def updata_param(self, lr, decay_coef):
         self.W_ += -1*lr*self.dW_
         self.b_ += -1*lr*self.db_
+
+        if decay_coef>0:
+            self.W_ += -1*decay_coef*self.W_
+            print "[FCLayer] norm2(W):", self.calc_weight_decay()
+    
+    def calc_weight_decay(self):
+        return np.sum(self.W_*self.W_)
             
 class ReLULayer():
     def init(self, params):
@@ -157,8 +167,11 @@ class ReLULayer():
         top_diff[bottom[0].data_<=0] = 0.0
         bottom[0].diff_ = top_diff
 
-    def updata_param(self, lr):
+    def updata_param(self, lr, decay_coef):
         pass
+    
+    def calc_weight_decay(self):
+        return 0
 
 
 class SoftmaxLossLayer():
@@ -189,7 +202,7 @@ class SoftmaxLossLayer():
         top[0].data_= data_loss
         self.prob_= prob
 
-        print "[SoftmaxLossLayer] softmax loss:",data_loss
+        #print "[SoftmaxLossLayer] softmax loss:",data_loss
 
     def backward(self, bottom, top):
         assert 2==len(bottom)
@@ -202,9 +215,11 @@ class SoftmaxLossLayer():
         grad /= batch # ???
         bottom[0].diff_ = grad
 
-    def updata_param(self, lr):
+    def updata_param(self, lr, decay_coef):
         pass
-
+    
+    def calc_weight_decay(self):
+        return 0
 
 class L2LossLayer():
     def init(self, params):
@@ -220,8 +235,11 @@ class L2LossLayer():
     def backward(self):
         pass
     
-    def updata_param(self, lr):
+    def updata_param(self, lr, decay_coef):
         pass
+    
+    def calc_weight_decay(self):
+        return 0
 
 # create layers
 def create_L2LossLayer(param_dict):
