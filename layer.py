@@ -81,7 +81,7 @@ class MnistDataLayer():
     def backward(self, bottom, top):
         pass
     
-    def updata_param(self, lr, decay_coef):
+    def updata_param(self, param):
         pass
 
     def calc_weight_decay(self):
@@ -97,6 +97,8 @@ class FCLayer():
         self.top_    = params["top"]
         self.W_ = None
         self.b_ = None
+        self.old_Vw_ = 0
+        self.old_Vb_ = 0
         print "[FCLayer] Setup",self.name_
 
     # bottom[0] -> input data(batch, dim)
@@ -133,16 +135,24 @@ class FCLayer():
         self.dW_ = copy.deepcopy(dW)
         self.db_ = copy.deepcopy(db)
 
-    def updata_param(self, lr, decay_coef):
-        self.W_ += -1*lr*self.dW_
-        self.b_ += -1*lr*self.db_
+    def updata_param(self, param):
+        lr = param["lr"]
+        decay_coef = param["decay_coef"]
+        momemtum   = param["momemtum"]
+
+        Vw = momemtum*self.old_Vw_ - lr*self.dW_
+        Vb = momemtum*self.old_Vb_ - lr*self.db_
+        self.W_ += Vw
+        self.b_ += Vb
+        self.old_Vw_ = Vw
+        self.old_Vb_ = Vb
 
         if decay_coef>0:
             self.W_ += -1*decay_coef*self.W_
-            print "[FCLayer] norm2(W):", self.calc_weight_decay()
+            #print "[FCLayer] norm2(W):", self.calc_weight_decay()
     
     def calc_weight_decay(self):
-        return np.sum(self.W_*self.W_)
+        return 0.5*np.sum(self.W_*self.W_)
             
 class ReLULayer():
     def init(self, params):
@@ -158,7 +168,10 @@ class ReLULayer():
         assert 1==len(bottom)
         assert 1==len(top)
 
-        top[0].data_ = np.max(0, bottom[0].data_)
+        #pdb.set_trace()
+        data = bottom[0].data_.copy()
+        data[data<=0] = 0.0
+        top[0].data_  = data
 
     def backward(self, bottom, top):
         assert 1==len(bottom)
@@ -167,7 +180,7 @@ class ReLULayer():
         top_diff[bottom[0].data_<=0] = 0.0
         bottom[0].diff_ = top_diff
 
-    def updata_param(self, lr, decay_coef):
+    def updata_param(self, param):
         pass
     
     def calc_weight_decay(self):
@@ -200,7 +213,7 @@ class SoftmaxLossLayer():
         data_loss = -np.log( prob[range(batch), label] )
         data_loss = np.sum(data_loss) / batch
         top[0].data_= data_loss
-        self.prob_= prob
+        self.prob_  = prob
 
         #print "[SoftmaxLossLayer] softmax loss:",data_loss
 
@@ -212,10 +225,10 @@ class SoftmaxLossLayer():
         label = bottom[1].data_
         grad  = copy.deepcopy(self.prob_)
         grad[range(batch), label] -= 1.0
-        grad /= batch # ???
+        grad /= batch # the log loss is a averange, so as the gradient!
         bottom[0].diff_ = grad
 
-    def updata_param(self, lr, decay_coef):
+    def updata_param(self, param):
         pass
     
     def calc_weight_decay(self):
@@ -235,7 +248,7 @@ class L2LossLayer():
     def backward(self):
         pass
     
-    def updata_param(self, lr, decay_coef):
+    def updata_param(self, param):
         pass
     
     def calc_weight_decay(self):
@@ -261,5 +274,8 @@ def create_MnistDataLayer(param_dict):
     L = MnistDataLayer()
     L.init(param_dict)
     return L
-
+def create_ReLULayer(param_dict):
+    L = ReLULayer()
+    L.init(param_dict)
+    return L
 

@@ -34,7 +34,11 @@ class Net():
         
         self.lr_ = 1e-3
         self.decay_coef_ = 0
+        self.momemum_ = 0
     
+    def set_momemtum(self, m):
+        self.momemum_ = m
+        
     def set_lr(self, lr):
         self.lr_ = lr
     
@@ -105,6 +109,11 @@ class Net():
         #print "Backward success!"
     
     def update_all_params(self):
+        param = {}
+        param["lr"] = self.lr_
+        param["decay_coef"] = self.decay_coef_
+        param["momemtum"]   = self.momemum_
+
         for L in self.layers_:
-            L.updata_param(self.lr_, self.decay_coef_)
+            L.updata_param(param)
 
