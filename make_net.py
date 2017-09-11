@@ -251,7 +251,7 @@ def make_LeNet():
     params = []
     
     layer1 = {}
-    layer1["batch"]  = 32
+    layer1["batch"]  = 64
     layer1["name"]   = "DATA"
     layer1["type"]   = "MnistDataLayer"
     layer1["bottom"] = []

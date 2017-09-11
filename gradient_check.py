@@ -333,6 +333,170 @@ def check_PoolingLayer():
     error = normd / np.max([norm1, norm2]) / num
     print "[poolingLayer] error:",error
 
+def make_debug_LeNet():
+    params = []
+
+    layer2 = {}
+    layer2["output"] = 20 
+    layer2["name"] = "CONV1"
+    layer2["type"] = "ConvLayer"
+    layer2["kernel_size"] = 5
+    layer2["pad"]  = 0
+    layer2["bottom"] = ["data"]
+    layer2["top"]    = ["conv1"]
+    params.append(layer2)
+
+    layer3 = {}
+    layer3["name"] = "RELU1"
+    layer3["type"] = "ReLULayer"
+    layer3["bottom"] = ["conv1"]
+    layer3["top"]    = ["relu1"]
+    params.append(layer3)
+
+    layer4 = {}
+    layer4["name"] = "POOL1"
+    layer4["type"] = "PoolingLayer"
+    layer4["bottom"] = ["relu1"]
+    layer4["top"]    = ["pooling1"]
+    params.append(layer4)
+
+    # conv2
+    layer_conv2 = {}
+    layer_conv2["name"] = "CONV2"
+    layer_conv2["type"] = "ConvLayer"
+    layer_conv2["output"] = 50
+    layer_conv2["kernel_size"] = 5
+    layer_conv2["pad"]    = 0
+    layer_conv2["bottom"] = ["pooling1"]
+    layer_conv2["top"]    = ["conv2"]
+    params.append(layer_conv2)
+
+    # relu_conv2
+    relu2_param = {}
+    relu2_param["name"] = "RELU2"
+    relu2_param["type"] = "ReLULayer"
+    relu2_param["bottom"] = ["conv2"]
+    relu2_param["top"]    = ["relu2"]
+    params.append(relu2_param)
+
+    # pool2
+    pool2_param = {}
+    pool2_param["name"] = "POOL2"
+    pool2_param["type"] = "PoolingLayer"
+    pool2_param["bottom"] = ["relu2"]
+    pool2_param["top"]    = ["pool2"]
+    params.append(pool2_param)
+
+    # fc1
+    fc1_param = {}
+    fc1_param["name"] = "FC1"
+    fc1_param["type"] = "FCLayer"
+    fc1_param["output"] = 500
+    fc1_param["bottom"] = ["pool2"]
+    fc1_param["top"]    = ["fc1"]
+    params.append(fc1_param)
+
+    # fc1_relu
+    fc1_relu_param = {}
+    fc1_relu_param["name"] = "FC1_RELU"
+    fc1_relu_param["type"] = "ReLULayer"
+    fc1_relu_param["bottom"] = ["fc1"]
+    fc1_relu_param["top"]    = ["fc1_relu"]
+    params.append(fc1_relu_param)
+
+    layer5 = {}
+    layer5["output"] = 10      # class num
+    layer5["name"] = "FC2"
+    layer5["type"] = "FCLayer"
+    layer5["bottom"] = ["fc1_relu"]
+    layer5["top"]    = ["fc2"]
+    params.append(layer5)
+
+    layer6 = {}
+    layer6["class_num"] = 10
+    layer6["name"]   = "SOFTMAXLOSS"
+    layer6["type"]   = "SoftmaxLossLayer"
+    layer6["bottom"] = ["fc2", "label"]
+    layer6["top"]    = ["loss"]
+    params.append(layer6)
+
+    top_check_dict = {}
+    layers = []
+    for idx in xrange(len(params)):
+        param = params[idx]
+        layer_type  = param["type"]
+        create_fun = "create_"+layer_type
+        L = eval(create_fun)(param)
+        layers.append(L)
+        for name in L.top_:
+            assert not top_check_dict.has_key(name)
+            top_check_dict[name] = ""
+    return layers
+
+def net_forward(forward_dict, layers):
+    for L in layers_:
+        bottom = []
+        for name in L.bottom_:
+            blob = Blob()
+            blob.data_ = forward_dict[name]
+            bottom.append(bottom)
+        
+        top = []
+        for name in L.top_:
+            blob = Blob()
+            top.append(blob)
+
+        L.forward(bottom, top)
+        for k in xrange(len(top)):
+            name = L.top_[k]
+            blob = top[k]
+            forward_dict[name] = blob
+
+def net_backward(forward_dict, backward_dict, layers):
+    for inv_idx in xrange(len(layers_)-1, -1, -1):
+        L   = layers[inv_idx]
+        if L.type_=="SoftmaxLossLayer" or L.type_=="L2LossLayer":
+            top = [Blob()]
+        else:
+            top = []
+            for name in L.top_:
+                top.append( backward_dict[name] )
+        
+        bottom = []
+        for name in L.bottom_:
+            bottom.append( forward_dict[name] )
+
+        L.backward(bottom, top)
+        
+        # save result
+        for k in xrange(len(bottom)):
+            name = L.bottom_[k]
+            diff = bottom[k].diff_
+            if backward_dict.has_key(name):
+                forward_dict[name].diff_ += diff
+            else:
+                forward_dict[name].diff_ = diff
+
+def check_LeNet():
+    layers = make_debug_LeNet()
+
+    batch = 4
+    data  = np.random.randn( batch,1,28,28 )
+    label = np.random.randint( 0, 10, batch )
+    
+    data_blob = Blob(); lab_blob  = Blob()
+    data_blob.data_ = data_blob; lab_blob.data_  = lab_blob
+    
+    forward_dict  = {}
+    backward_dict = {}
+    forward_dict["data"]  = data_blob
+    forward_dict["label"] = lab_blob
+
+    # forward
+    forward(forward_dict, layers)
+    backward(forward_dict, backward_dict, layers)
+    grad_ori = backward_dict
+
 if __name__=="__main__":
     check_PoolingLayer()
 
