@@ -12,7 +12,7 @@ if __name__=="__main__":
     my_net.set_weight_decay(0.0005)
     my_net.set_momemtum(0.9)
     show_interval = 20
-    test_interval = 1000
+    test_interval = 10
     mnist_data = load_mnist()
     
     itr = 0
@@ -46,7 +46,10 @@ if __name__=="__main__":
             print "[train] itr:",itr,"loss: %.2f"%loss, "decay: %.2f"%decay_loss, "acc: %.4f"%acc
 
         if itr%test_interval==0:
-            pdb.set_trace()
+            #pdb.set_trace()
+            save_name = "LeNet-%d"%itr+".model"
+            my_net.save(save_name)
+
             test_batch = 500
             test_num = 10000
 

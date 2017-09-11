@@ -134,7 +134,7 @@ class Net():
     
     def save(self, name):
         param_dict = {}
-        for L in self.layer_:
+        for L in self.layers_:
             L.save(param_dict)
         fd = open(name, "w")
         PKL.dump(param_dict, fd)
