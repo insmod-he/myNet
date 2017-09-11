@@ -37,7 +37,7 @@ def col2im(X_cols, pad, patchH, patchW, outH, outW):
     Out = X_cols.reshape(patch_size, batch, outH, outW)
     ori_H = outH + patchH - 1
     ori_W = outW + patchH - 1
-    ori_data = np.zeros( [batch, dim, ori_H+2*pad, ori_W+2*pad], dtype=np.float)
+    ori_data = np.zeros( [batch, dim, ori_H, ori_W], dtype=np.float)
 
     hH = patchH/2
     hW = patchW/2

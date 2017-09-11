@@ -556,6 +556,55 @@ class PoolingLayer():
     def load(self, param_dict):
         pass
 
+class DropoutLayer():
+    def init(self, params):
+        self.type_ = "DropoutLayer"
+        self.name_ = params["name"]
+        self.bottom_ = params["bottom"]
+        self.top_    = params["top"]
+        self.prob_   = params["keep_rate"]
+        self.phase_  = "train"
+        print "[DropoutLayer] Setup",self.name_    
+    
+    def forward(self, bottom, top):
+        assert 1==len(bottom)
+        assert 1==len(top)
+
+        #pdb.set_trace()
+        data = bottom[0].data_.copy()
+        if "train"==self.phase_:
+            shape = data.shape
+            self.mask_ = np.random.uniform(0,1, shape) < self.prob_
+            data[self.mask_] = 0.0
+            out = data
+        elif "test"==self.phase_:
+            out = data * self.prob_
+        else:
+            assert 0
+        top[0].data_ = out
+    
+    def backward(self, bottom, top):
+        assert 1==len(bottom)
+        assert 1==len(top)
+
+        #pdb.set_trace()
+        dOut  = top[0].diff_.copy()
+        dOut[self.mask_] = 0.0
+        dData = dOut
+        bottom[0].diff_ = dData
+
+    def updata_param(self, param):
+        pass
+    
+    def calc_weight_decay(self):
+        return 0
+
+    def save(self, param_dict):
+        pass
+        
+    def load(self, param_dict):
+        pass
+
 def create_L2LossLayer(param_dict):
     L = L2LossLayer()
     L.init(param_dict)
@@ -588,5 +637,10 @@ def create_ConvLayer(param_dict):
 
 def create_PoolingLayer(param_dict):
     L = PoolingLayer()
+    L.init(param_dict)
+    return L
+
+def create_DropoutLayer(param_dict):
+    L = DropoutLayer()
     L.init(param_dict)
     return L
