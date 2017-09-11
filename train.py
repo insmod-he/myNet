@@ -7,11 +7,11 @@ import time
 
 if __name__=="__main__":
     lr = 0.01
-    my_net = make_LeNet7()
+    my_net = make_LeNet5()
     my_net.set_lr(lr)
     my_net.set_weight_decay(0.0001)
     my_net.set_momemtum(0.9)
-    show_interval = 1
+    show_interval = 5
     test_interval = 1000
     mnist_data = load_mnist()
     
