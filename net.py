@@ -4,6 +4,7 @@ import numpy as np
 import Queue as Que
 import copy
 from layer import *
+import pdb
 
 class Blob:
     def __init__(self):

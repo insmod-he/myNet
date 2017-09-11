@@ -2,14 +2,17 @@ import os
 import pdb
 from make_net import *
 import numpy as np
+from load_mnist import *
 
 if __name__=="__main__":
-    lr = 1e-2
-    my_net = make_3layer_mlp()
+    lr = 0.01
+    my_net = make_LeNet()
     my_net.set_lr(lr)
-    my_net.set_weight_decay(1e-4)
+    my_net.set_weight_decay(0.0005)
     my_net.set_momemtum(0.9)
-    show_interval = 200
+    show_interval = 100
+
+    mnist_data = load_mnist()
     
     itr = 0
     all_itr = 10000
@@ -39,5 +42,6 @@ if __name__=="__main__":
                 for L in my_net.layers_:
                     decay_loss += L.calc_weight_decay()
             loss += decay*decay_loss
-            print "[train] itr:",itr,"loss:",loss, "decay:",decay_loss, "acc:",acc
+            print "[train] itr:",itr,"loss: %.2f"%loss, "decay: %.2f"%decay_loss, "acc: %.2f"%acc
+        
         
