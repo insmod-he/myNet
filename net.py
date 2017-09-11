@@ -5,6 +5,7 @@ import Queue as Que
 import copy
 from layer import *
 import pdb
+import cPickle as PKL
 
 class Blob:
     def __init__(self):
@@ -12,12 +13,17 @@ class Blob:
         self.diff_ = None
 
 class Net():
-    def init(self, layer_params):
+    def init(self, layer_params, solver_param={}):
         # 1.Setup layers
         self.forward_flag_  = {}
         self.backward_flag_ = {}
         self.forward_blobs_ = {} # save foward activation
         self.backward_blobs_= {} # save backward gradient 
+        self.pretrain_model_= ""
+
+        if len(solver_param.keys())>0:
+            if solver_param.has_key("model"):
+                self.pretrain_model_ = solver_param["model"]
 
         # call create_[layer_name]_fun
         top_check_dict = {}
@@ -32,6 +38,9 @@ class Net():
             for name in L.top_:
                 assert not top_check_dict.has_key(name)
                 top_check_dict[name] = ""
+        
+        if self.pretrain_model_!="":
+            self.load_model(self.pretrain_model_)
         
         self.lr_ = 1e-3
         self.decay_coef_ = 0
@@ -122,4 +131,18 @@ class Net():
 
         for L in self.layers_:
             L.updata_param(param)
-
+    
+    def save(self, name):
+        param_dict = {}
+        for L in self.layer_:
+            L.save(param_dict)
+        fd = open(name, "w")
+        PKL.dump(param_dict, fd)
+        fd.close()
+        print name,"saved!"
+    
+    def load_model(self, path):
+        param_dict = PKL.load(open(path, "r"))
+        for L in self.layers_:
+            L.load_model(param_dict)
+        print "load model form",path

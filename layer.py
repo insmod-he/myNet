@@ -37,6 +37,7 @@ class MnistDataLayer():
         self.top_   = params["top"]
         self.index_ = 0
         self.DEBUG_ = False
+        self.phase_ = "train"
         
         if not params.has_key("path"):
             N = 100 # number of points per class
@@ -69,16 +70,41 @@ class MnistDataLayer():
             test_data  = R[2][0]
             test_lab   = R[2][1]
 
-            X = np.array(train_data)*2 - 0.5
-            X = X.reshape(len(X), 1, 28, 28)
-            y = np.array(train_lab)
+            if self.phase_=="train":
+                data = train_data
+                lab  = train_lab
+                data = np.vstack((data, val_data))
+                lab  = lab.tolist()
+                for l in val_lab:
+                    lab.append(l)
+                lab  = np.array(lab)
+
+                X = np.array(data)*2 - 0.5
+                X = X.reshape(len(X), 1, 28, 28)
+                y = np.array(lab)
+            elif self.phase_=="test":
+                data = test_data
+                lab  = test_lab
+                X = np.array(data)*2 - 0.5
+                X = X.reshape(len(X), 1, 28, 28)
+                y = np.array(lab)
         
         self.data_X_ = X
         self.data_y_ = y
         self.data_num_ = len(X)
         self.rnd_idx_  = range(self.data_num_)
-        np.random.shuffle(self.rnd_idx_)
+        if self.phase_=="train":
+            np.random.shuffle(self.rnd_idx_)
         print "[MnistDataLayer] Setup",self.name_
+    
+    def set_phase(self, p):
+        self.phase_ = p
+    
+    def set_batch(self, b):
+        self.batch_ = b
+
+    def get_batch(self):
+        return self.batch_
 
     def forward(self, bottom, top):
         assert 2==len(top)
@@ -89,7 +115,8 @@ class MnistDataLayer():
         for k in xrange(self.batch_):
             if self.index_>=self.data_num_:
                 self.index_ = 0
-                np.random.shuffle(self.rnd_idx_)
+                if self.phase_=="train":
+                    np.random.shuffle(self.rnd_idx_)
             sel_idx = self.rnd_idx_[self.index_]
             batch_X.append( self.data_X_[sel_idx] )
             batch_y.append( self.data_y_[sel_idx] )
@@ -105,6 +132,12 @@ class MnistDataLayer():
 
     def calc_weight_decay(self):
         return 0
+
+    def save(self, param_dict):
+        pass
+
+    def load(self, param_dict):
+        pass
 
 class FCLayer():
     def init(self, params):
@@ -185,6 +218,18 @@ class FCLayer():
     
     def calc_weight_decay(self):
         return 0.5*np.sum(self.W_*self.W_)
+
+    def save(self, param_dict):
+        layer_dict = {}
+        layer_dict["W"] = self.W_
+        layer_dict["b"] = self.b_
+        assert not param_dict.has_key(self.name_)
+        param_dict[self.name_] = layer_dict
+        
+    def load(self, param_dict):
+        layer_dict = param_dict[self.name_]
+        self.W_ = layer_dict["W"]
+        self.b_ = layer_dict["b"]
             
 class ReLULayer():
     def init(self, params):
@@ -218,6 +263,12 @@ class ReLULayer():
     def calc_weight_decay(self):
         return 0
 
+    def save(self, param_dict):
+        pass
+        
+    def load(self, param_dict):
+        pass
+
 
 class SoftmaxLossLayer():
     def init(self, params):
@@ -227,7 +278,11 @@ class SoftmaxLossLayer():
         self.class_num_ = params["class_num"]
         self.bottom_ = params["bottom"]
         self.top_    = params["top"]
+        self.phase_  = "train"
         print "[SoftmaxLossLayer] Setup",self.name_
+    
+    def set_phase(self, p):
+        self.phase_ = p
 
     # bottom[0].data_ -> unnormalized prob
     # bottom[1].data_ -> label
@@ -244,10 +299,13 @@ class SoftmaxLossLayer():
         prob = exp_data / np.sum(exp_data, 1,  keepdims=True) # prob
         data_loss = -np.log( prob[range(batch), label] )
         data_loss = np.sum(data_loss) / batch
-        top[0].data_= data_loss
+        
+        if self.phase_=="train":
+            top[0].data_ = data_loss
+        elif self.phase_=="test":
+            pred = np.argmax(prob, 1)
+            top[0].data_ = pred
         self.prob_  = prob
-
-        #print "[SoftmaxLossLayer] softmax loss:",data_loss
 
     def backward(self, bottom, top):
         assert 2==len(bottom)
@@ -265,6 +323,12 @@ class SoftmaxLossLayer():
     
     def calc_weight_decay(self):
         return 0
+
+    def save(self, param_dict):
+        pass
+        
+    def load(self, param_dict):
+        pass
 
 class L2LossLayer():
     def init(self, params):
@@ -298,6 +362,12 @@ class L2LossLayer():
     
     def calc_weight_decay(self):
         return 0
+
+    def save(self, param_dict):
+        pass
+        
+    def load(self, param_dict):
+        pass
 
 # create layers
 
@@ -395,6 +465,18 @@ class ConvLayer():
     def calc_weight_decay(self):
         return 0.5*np.sum(self.W_*self.W_)
 
+    def save(self, param_dict):
+        layer_dict = {}
+        layer_dict["W"] = self.W_
+        layer_dict["b"] = self.b_
+        assert not param_dict.has_key(self.name_)
+        param_dict[self.name_] = layer_dict
+        
+    def load(self, param_dict):
+        layer_dict = param_dict[self.name_]
+        self.W_ = layer_dict["W"]
+        self.b_ = layer_dict["b"]
+
 
 class PoolingLayer():
     def init(self, params):
@@ -467,6 +549,12 @@ class PoolingLayer():
     
     def calc_weight_decay(self):
         return 0
+
+    def save(self, param_dict):
+        pass
+        
+    def load(self, param_dict):
+        pass
 
 def create_L2LossLayer(param_dict):
     L = L2LossLayer()
