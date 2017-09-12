@@ -50,7 +50,7 @@ if __name__=="__main__":
 
         if itr%test_interval==0:
             #pdb.set_trace()
-            save_name = "LeNet5-%d"%itr+".model"
+            save_name = "3K-LeNet5-%d"%itr+".model"
             my_net.save(save_name)
 
             test_batch = 500
