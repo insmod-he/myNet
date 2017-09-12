@@ -8,7 +8,6 @@ import time
 if __name__=="__main__":
     lr = 0.01
     params = {}
-    params["model"] = "./LeNet5-3000.model"
 
     my_net = make_LeNet5(params)
     my_net.set_lr(lr)
