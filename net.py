@@ -21,7 +21,7 @@ class Net():
         self.backward_blobs_= {} # save backward gradient 
         self.pretrain_model_= ""
 
-        pdb.set_trace()
+        #pdb.set_trace()
         if len(solver_param.keys())>0:
             if solver_param.has_key("model"):
                 self.pretrain_model_ = solver_param["model"]
@@ -85,10 +85,14 @@ class Net():
             blobs.append(b)
         return blobs
         
-    def forward(self):
+    def forward(self, blobs={}):
         # 1.Init forward flags
         #pdb.set_trace()
         self.data_blobs_ = {}
+        if len(blobs.keys())>0:
+            for key in blobs.keys():
+                self.data_blobs_[key] = blobs[key]
+
         for L in self.layers_:
             assert L.name_!="", "assert self.name_!="""
             

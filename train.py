@@ -14,8 +14,8 @@ if __name__=="__main__":
     my_net.set_lr(lr)
     my_net.set_weight_decay(0.0001)
     my_net.set_momemtum(0.9)
-    show_interval = 1
-    test_interval = 10
+    show_interval = 10
+    test_interval = 1000
     mnist_data = load_mnist()
     
     itr = 0
@@ -27,7 +27,7 @@ if __name__=="__main__":
         my_net.update_all_params()
         itr += 1
 
-        if itr>6000:
+        if itr>1000:
             my_net.set_lr(lr/10)
 
         if itr%show_interval==0:
