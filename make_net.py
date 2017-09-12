@@ -683,7 +683,7 @@ def make_LeNet7():
     return net
 
 
-def make_LeNet5():
+def make_LeNet5(net_params=None):
     params = []
     
     layer1 = {}
@@ -693,6 +693,8 @@ def make_LeNet5():
     layer1["bottom"] = []
     layer1["top"]    = ["data", "label"]
     layer1["path"]   = "./data/mnist.pkl"
+    layer1["rotate"] = 10
+    layer1["shift"]  = 2
     params.append(layer1)
 
     layer2 = {}
@@ -836,5 +838,9 @@ def make_LeNet5():
     params.append(layer6)
 
     net = Net()
-    net.init(params)
+    if type(net_params)!=type(None):
+        net.init(params, net_params)
+    else:
+        net.init(params)
+    
     return net

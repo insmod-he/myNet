@@ -7,12 +7,15 @@ import time
 
 if __name__=="__main__":
     lr = 0.01
-    my_net = make_LeNet5()
+    params = {}
+    params["model"] = "./LeNet5-3000.model"
+
+    my_net = make_LeNet5(params)
     my_net.set_lr(lr)
     my_net.set_weight_decay(0.0001)
     my_net.set_momemtum(0.9)
-    show_interval = 5
-    test_interval = 1000
+    show_interval = 1
+    test_interval = 10
     mnist_data = load_mnist()
     
     itr = 0
@@ -47,7 +50,7 @@ if __name__=="__main__":
 
         if itr%test_interval==0:
             #pdb.set_trace()
-            save_name = "LeNet-%d"%itr+".model"
+            save_name = "LeNet5-%d"%itr+".model"
             my_net.save(save_name)
 
             test_batch = 500

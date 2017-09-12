@@ -1,10 +1,11 @@
-#import cv2
+import cv2
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
 import pdb
 import cPickle as PKL
 from im2col import *
+import time
 
 # class Layer():
 #     def __init__():
@@ -28,6 +29,8 @@ from im2col import *
 
 # top[0] -> data
 # top[1] -> label
+global ALL_LAYER_DEBUG
+ALL_LAYER_DEBUG =  False
 class MnistDataLayer():
     def init(self, params):
         self.type_  = "MnistDataLayer"
@@ -35,6 +38,15 @@ class MnistDataLayer():
         self.batch_ = params["batch"]
         self.bottom_= params["bottom"]
         self.top_   = params["top"]
+        
+        self.rotate_ = 0
+        self.shift_  = 0
+        self.resize_ = []
+        if params.has_key("rotate"):
+            self.rotate_ = params["rotate"]
+        if params.has_key("shift"):
+            self.shift_ = params["shift"]
+
         self.index_ = 0
         self.DEBUG_ = False
         self.phase_ = "train"
@@ -79,13 +91,13 @@ class MnistDataLayer():
                     lab.append(l)
                 lab  = np.array(lab)
 
-                X = np.array(data)*2 - 0.5
+                X = np.array(data)
                 X = X.reshape(len(X), 1, 28, 28)
                 y = np.array(lab)
             elif self.phase_=="test":
                 data = test_data
                 lab  = test_lab
-                X = np.array(data)*2 - 0.5
+                X = np.array(data)
                 X = X.reshape(len(X), 1, 28, 28)
                 y = np.array(lab)
         
@@ -106,7 +118,21 @@ class MnistDataLayer():
     def get_batch(self):
         return self.batch_
 
+    def translate(self, I, x, y):
+        T = np.float32([[1, 0, x], [0, 1, y]])
+        shifted = cv2.warpAffine(I, T, (I.shape[1], I.shape[0]))
+        return shifted
+
+    def rotate(self, I, angle, scale):
+        angle  = angle/180 * 3.1415926
+        [h, w] = I.shape
+        center = (w / 2, h / 2)
+        M = cv2.getRotationMatrix2D(center, angle, scale)
+        rotated = cv2.warpAffine(I, M, (w, h))
+        return rotated
+
     def forward(self, bottom, top):
+        t_start = time.time()
         assert 2==len(top)
         #pdb.set_trace()
 
@@ -118,11 +144,37 @@ class MnistDataLayer():
                 if self.phase_=="train":
                     np.random.shuffle(self.rnd_idx_)
             sel_idx = self.rnd_idx_[self.index_]
-            batch_X.append( self.data_X_[sel_idx] )
-            batch_y.append( self.data_y_[sel_idx] )
+
+            data = self.data_X_[sel_idx]
+            lab  = self.data_y_[sel_idx]
+            
+            #pdb.set_trace()
+            #rnd_idx = np.random.randint(0,100000)
+            if self.phase_=="train":
+                data = data.reshape(28,28)
+                #cv2.imwrite( "./debug-imgs/%d-ori.jpg"%rnd_idx, np.uint8(data*200) )
+                if self.rotate_>0:
+                    rnd_angle = np.random.uniform( 0, self.rotate_ )
+                    data = self.rotate( data, rnd_angle, 1.0 )
+                
+                if self.shift_>0:
+                    x = np.random.uniform( -1*self.shift_, self.shift_ )
+                    y = np.random.uniform( -1*self.shift_, self.shift_ )
+                    data = self.translate(data, x, y)
+                #cv2.imwrite( "./debug-imgs/%d-aug.jpg"%rnd_idx, np.uint8(data*200) )
+                data = data.reshape(1,28,28)
+            
+            data = data * 2 - 0.5
+            batch_X.append( data )
+            batch_y.append( lab )
             self.index_ += 1
         top[0].data_ = np.array(batch_X)
         top[1].data_ = np.array(batch_y)
+
+        t_end = time.time()
+        global  ALL_LAYER_DEBUG
+        if ALL_LAYER_DEBUG:
+            print "[MnistDataLayer]",self.name_," forward time: %.2f"%(t_end-t_start),"s"
 
     def backward(self, bottom, top):
         pass
@@ -158,6 +210,7 @@ class FCLayer():
     # top[0] -> output data(batch, output)
     def forward(self, bottom, top):
         #pdb.set_trace()
+        t_start = time.time()
         assert 1==len(bottom)
         assert 1==len(top)
 
@@ -177,9 +230,15 @@ class FCLayer():
         activ = np.dot(data, self.W_) + self.b_
         top[0].data_ = copy.deepcopy(activ)
         self.activ_  = activ
+        t_end = time.time()
+
+        global ALL_LAYER_DEBUG
+        if ALL_LAYER_DEBUG:
+            print "[FCLayer]",self.name_,"forward time: %.2f"%(t_end-t_start),"s"
 
     def backward(self, bottom, top):
         #pdb.set_trace()
+        t_start = time.time()
         assert 1==len(bottom)
         assert 1==len(top)
 
@@ -199,6 +258,11 @@ class FCLayer():
         # save gradient
         self.dW_ = copy.deepcopy(dW)
         self.db_ = copy.deepcopy(db)
+        t_end = time.time()
+
+        global ALL_LAYER_DEBUG
+        if ALL_LAYER_DEBUG:
+            print "[FCLayer]",self.name_,"backward time: %.2f"%(t_end-t_start),"s"
 
     def updata_param(self, param):
         lr = param["lr"]
@@ -242,6 +306,7 @@ class ReLULayer():
     # bottom[0] -> data
     # top[0]    -> after ReLU
     def forward(self, bottom, top):
+        t_start = time.time()
         assert 1==len(bottom)
         assert 1==len(top)
 
@@ -250,12 +315,23 @@ class ReLULayer():
         data[data<=0] = 0.0
         top[0].data_  = data
 
+        t_end = time.time()
+        global ALL_LAYER_DEBUG
+        if ALL_LAYER_DEBUG:
+            print "[ReLULayer]",self.name_,"forward time: %.2f"%(t_end-t_start),"s"
+
     def backward(self, bottom, top):
+        t_start = time.time()
         assert 1==len(bottom)
         assert 1==len(top)
         top_diff = copy.deepcopy(top[0].diff_)
         top_diff[bottom[0].data_<=0] = 0.0
         bottom[0].diff_ = top_diff
+
+        t_end = time.time()
+        global ALL_LAYER_DEBUG
+        if ALL_LAYER_DEBUG:
+            print "[ReLULayer]",self.name_,"backward time: %.2f"%(t_end-t_start),"s"
 
     def updata_param(self, param):
         pass
@@ -288,6 +364,7 @@ class SoftmaxLossLayer():
     # bottom[1].data_ -> label
     def forward(self, bottom, top):
         #pdb.set_trace()
+        t_start = time.time()
         assert 1==len(top)
         assert 2==len(bottom)
         data  = bottom[0].data_
@@ -307,9 +384,15 @@ class SoftmaxLossLayer():
             top[0].data_ = pred
         self.prob_  = prob
 
+        t_end = time.time()
+        global ALL_LAYER_DEBUG
+        if ALL_LAYER_DEBUG:
+            print "[SoftmaxLossLayer]",self.name_,"forward time: %.2f"%(t_end-t_start),"s"
+
     def backward(self, bottom, top):
         assert 2==len(bottom)
         #pdb.set_trace()
+        t_start = time.time()
         batch, dim = bottom[0].data_.shape  # unnormalized score
         
         label = bottom[1].data_
@@ -317,6 +400,11 @@ class SoftmaxLossLayer():
         grad[range(batch), label] -= 1.0
         grad /= batch # the log loss is a averange, so as the gradient!
         bottom[0].diff_ = grad
+
+        t_end = time.time()
+        global ALL_LAYER_DEBUG
+        if ALL_LAYER_DEBUG:
+            print "[SoftmaxLossLayer]",self.name_,"backward time: %.2f"%(t_end-t_start),"s"
 
     def updata_param(self, param):
         pass
@@ -389,6 +477,7 @@ class ConvLayer():
         print "[ConvLayer] Setup",self.name_
     
     def forward(self, bottom, top):
+        t_start = time.time()
         assert 1==len(bottom)
         assert 1==len(top)
         #pdb.set_trace()
@@ -419,9 +508,15 @@ class ConvLayer():
         output = output + B
         output = output.transpose([1,0,2,3]) # batch,output,outH,outW
         top[0].data_ = output
+
+        t_end = time.time()
+        global ALL_LAYER_DEBUG
+        if ALL_LAYER_DEBUG:
+            print "[ConvLayer]",self.name_,"forward time: %.2f"%(t_end-t_start),"s"
     
     # dOut,dW,db
     def backward(self, bottom, top):
+        t_start = time.time()
         assert 1==len(bottom)
         assert 1==len(top)
         #pdb.set_trace()
@@ -446,6 +541,11 @@ class ConvLayer():
         # save gradient
         self.dW_ = copy.deepcopy(dW)
         self.db_ = copy.deepcopy(db)
+
+        t_end = time.time()
+        global ALL_LAYER_DEBUG
+        if ALL_LAYER_DEBUG:
+            print "[ConvLayer]",self.name_,"backward time: %.2f"%(t_end-t_start),"s"
     
     def updata_param(self, param):
         lr = param["lr"]
@@ -492,6 +592,7 @@ class PoolingLayer():
     # bottom[0] -> data
     # top[0]    -> after ReLU
     def forward(self, bottom, top):
+        t_start = time.time()
         assert 1==len(bottom)
         assert 1==len(top)
 
@@ -522,7 +623,13 @@ class PoolingLayer():
         top[0].data_ = Out
         self.argmax_ = copy.deepcopy(arg_max)
 
+        t_end = time.time()
+        global ALL_LAYER_DEBUG
+        if ALL_LAYER_DEBUG:
+            print "[PoolingLayer]",self.name_,"forward time: %.2f"%(t_end-t_start),"s"
+
     def backward(self, bottom, top):
+        t_start = time.time()
         assert 1==len(bottom)
         assert 1==len(top)
 
@@ -543,6 +650,11 @@ class PoolingLayer():
                         ori_w = w*self.stride_ + max_idx%self.kernel_
                         dData[b, d, ori_h, ori_w] =  grad_top[b, d, h, w]
         bottom[0].diff_ = dData.copy()
+
+        t_end = time.time()
+        global ALL_LAYER_DEBUG
+        if ALL_LAYER_DEBUG:
+            print "[PoolingLayer]",self.name_,"backward time: %.2f"%(t_end-t_start),"s"
 
     def updata_param(self, param):
         pass
@@ -567,6 +679,7 @@ class DropoutLayer():
         print "[DropoutLayer] Setup",self.name_    
     
     def forward(self, bottom, top):
+        t_start = time.time()
         assert 1==len(bottom)
         assert 1==len(top)
 
@@ -582,8 +695,14 @@ class DropoutLayer():
         else:
             assert 0
         top[0].data_ = out
+
+        t_end = time.time()
+        global ALL_LAYER_DEBUG
+        if ALL_LAYER_DEBUG:
+            print "[DropoutLayer]",self.name_,"forward time: %.2f"%(t_end-t_start),"s"
     
     def backward(self, bottom, top):
+        t_start = time.time()
         assert 1==len(bottom)
         assert 1==len(top)
 
@@ -592,6 +711,11 @@ class DropoutLayer():
         dOut[self.mask_] = 0.0
         dData = dOut
         bottom[0].diff_ = dData
+
+        t_end = time.time()
+        global ALL_LAYER_DEBUG
+        if ALL_LAYER_DEBUG:
+            print "[DropoutLayer]",self.name_,"backward time: %.2f"%(t_end-t_start),"s"
 
     def updata_param(self, param):
         pass

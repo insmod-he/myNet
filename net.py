@@ -21,6 +21,7 @@ class Net():
         self.backward_blobs_= {} # save backward gradient 
         self.pretrain_model_= ""
 
+        pdb.set_trace()
         if len(solver_param.keys())>0:
             if solver_param.has_key("model"):
                 self.pretrain_model_ = solver_param["model"]
@@ -144,5 +145,5 @@ class Net():
     def load_model(self, path):
         param_dict = PKL.load(open(path, "r"))
         for L in self.layers_:
-            L.load_model(param_dict)
+            L.load(param_dict)
         print "load model form",path
