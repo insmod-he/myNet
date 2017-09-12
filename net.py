@@ -21,7 +21,7 @@ class Net():
         self.backward_blobs_= {} # save backward gradient 
         self.pretrain_model_= ""
 
-        pdb.set_trace()
+        #pdb.set_trace()
         if len(solver_param.keys())>0:
             if solver_param.has_key("model"):
                 self.pretrain_model_ = solver_param["model"]
